@@ -32,6 +32,8 @@ package libgeo
 // Dependencies
 import (
 	"errors"
+	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -147,20 +149,19 @@ type Location struct {
 // Load the database file in memory, detect the db format and setup the GeoIP struct
 func Load(filename string) (gi *GeoIP, err error) {
 	// Try to open the requested file
-	dbInfo, err := os.Lstat(filename)
-	if err != nil {
-		return
-	}
 	dbFile, err := os.Open(filename)
 	if err != nil {
 		return
 	}
+	defer dbFile.Close()
 
+	return LoadFromReader(dbFile)
+}
+
+func LoadFromReader(dbFile io.Reader) (gi *GeoIP, err error) {
 	// Copy the db into memory
 	gi = new(GeoIP)
-	gi.data = make([]byte, dbInfo.Size())
-	dbFile.Read(gi.data)
-	dbFile.Close()
+	gi.data, err = ioutil.ReadAll(dbFile)
 
 	// Check the database type
 	gi.dbType = dbCountryEdition           // Default the database to country edition
